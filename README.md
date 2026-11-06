@@ -1,6 +1,11 @@
 # RAG Source Receipts
 
-> **Early MVP · MIT · Python 3.11+**. Scope and integration limits are documented below.
+Python 3.11+ · MIT · Experimental
+
+Content and processing fingerprints for RAG ingestion. Compare receipts to tell
+a text or configuration change from a timestamp-only update.
+
+[![Tests](https://github.com/Ishaan1342/rag-source-receipts/actions/workflows/test.yml/badge.svg)](https://github.com/Ishaan1342/rag-source-receipts/actions/workflows/test.yml)
 
 ## Install from this repository
 
@@ -11,13 +16,11 @@ python -m pip install -e .
 ```
 
 See [Contributing](CONTRIBUTING.md), [Security](SECURITY.md) and the
-[Changelog](CHANGELOG.md). GitHub CI results, once available, are separate from
-local test results.
+[Changelog](CHANGELOG.md).
 
 
-Small, offline ingestion receipts linking selected text to its public source,
-processing recipe and content digest. Re-embed only when text or processing
-changes; a new observation timestamp alone does not invalidate embeddings.
+Receipts link selected text to its source URL, processing recipe and content
+digest. A new observation timestamp alone does not invalidate embeddings.
 
 ## Try it
 
@@ -77,7 +80,7 @@ prompt changes. Embedding-model changes are not inferred; include them in that
 version if using this receipt to gate embedding generation. The library does
 not implement crawling, chunking or embeddings.
 
-## Boundaries
+## Limitations
 
 Hashes detect mismatched artifacts; they are **not signed provenance** and do
 not prove source authenticity. `verify_receipt` verifies the text, recipe,

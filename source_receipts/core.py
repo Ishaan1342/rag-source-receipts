@@ -1,4 +1,5 @@
 """Content-addressed ingestion receipts. This module never fetches a URL."""
+
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 import hashlib
@@ -11,7 +12,9 @@ def digest(data):
 
 
 def canonical(data):
-    return json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    return json.dumps(
+        data, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode("utf-8")
 
 
 def timestamp(value):
@@ -34,16 +37,36 @@ def public_url(url):
     parts = urlsplit(url)
     if parts.scheme not in ("https", "http") or not parts.hostname:
         raise ValueError("An absolute HTTP(S) URL is required")
-    blocked = ("token", "secret", "password", "signature", "credential", "authorization", "api_key", "apikey", "access_key")
-    query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
-             if not any(word in k.lower() for word in blocked) and
-             k.lower() not in ("key", "auth", "sig", "x-amz-security-token")]
+    blocked = (
+        "token",
+        "secret",
+        "password",
+        "signature",
+        "credential",
+        "authorization",
+        "api_key",
+        "apikey",
+        "access_key",
+    )
+    query = [
+        (k, v)
+        for k, v in parse_qsl(parts.query, keep_blank_values=True)
+        if not any(word in k.lower() for word in blocked)
+        and k.lower() not in ("key", "auth", "sig", "x-amz-security-token")
+    ]
     host = parts.hostname.lower()
     if ":" in host:
         host = f"[{host}]"
-    if parts.port and not (parts.scheme == "https" and parts.port == 443 or parts.scheme == "http" and parts.port == 80):
+    if parts.port and not (
+        parts.scheme == "https"
+        and parts.port == 443
+        or parts.scheme == "http"
+        and parts.port == 80
+    ):
         host += f":{parts.port}"
-    return urlunsplit((parts.scheme, host, parts.path or "/", urlencode(sorted(query)), ""))
+    return urlunsplit(
+        (parts.scheme, host, parts.path or "/", urlencode(sorted(query)), "")
+    )
 
 
 @dataclass(frozen=True)
@@ -58,16 +81,37 @@ class ProcessingConfig:
 
     def fingerprint(self):
         fields = asdict(self)
-        if any(not isinstance(fields[k], str) or not fields[k].strip()
-               for k in ("pipeline_version", "extractor", "extractor_version", "markdown_variant", "language")):
+        if any(
+            not isinstance(fields[k], str) or not fields[k].strip()
+            for k in (
+                "pipeline_version",
+                "extractor",
+                "extractor_version",
+                "markdown_variant",
+                "language",
+            )
+        ):
             raise ValueError("Processing identifiers must be non-empty strings")
-        if type(self.chunk_size) is not int or type(self.chunk_overlap) is not int or not 0 <= self.chunk_overlap < self.chunk_size:
+        if (
+            type(self.chunk_size) is not int
+            or type(self.chunk_overlap) is not int
+            or not 0 <= self.chunk_overlap < self.chunk_size
+        ):
             raise ValueError("Require 0 <= chunk_overlap < chunk_size")
         return digest(canonical(fields))
 
 
-def create_receipt(content, source_url, *, final_url=None, config=None,
-                   observed_at=None, fetched_at=None, cache_status="unknown", artifact_cached_at=None):
+def create_receipt(
+    content,
+    source_url,
+    *,
+    final_url=None,
+    config=None,
+    observed_at=None,
+    fetched_at=None,
+    cache_status="unknown",
+    artifact_cached_at=None,
+):
     if not isinstance(content, str):
         raise ValueError("Selected text content must be a string")
     if cache_status not in ("unknown", "miss", "hit", "hit_validated", "hit_fallback"):
@@ -77,24 +121,44 @@ def create_receipt(content, source_url, *, final_url=None, config=None,
     content_bytes = content.encode("utf-8")
     recipe_hash = cfg.fingerprint()
     content_hash = digest(content_bytes)
-    observed = timestamp(datetime.now(timezone.utc).isoformat() if observed_at is None else observed_at)
+    observed = timestamp(
+        datetime.now(timezone.utc).isoformat() if observed_at is None else observed_at
+    )
     fetched, cached = timestamp(fetched_at), timestamp(artifact_cached_at)
-    if any(t and datetime.fromisoformat(t.replace("Z", "+00:00")) >
-           datetime.fromisoformat(observed.replace("Z", "+00:00")) for t in (fetched, cached)):
+    if any(
+        t
+        and datetime.fromisoformat(t.replace("Z", "+00:00"))
+        > datetime.fromisoformat(observed.replace("Z", "+00:00"))
+        for t in (fetched, cached)
+    ):
         raise ValueError("Fetch/cache timestamp cannot be after observation")
-    receipt = dict(schema_version=1, source_url=source, final_url=final,
-                   content_sha256=content_hash, processing_sha256=recipe_hash,
-                   artifact_id=digest(canonical([content_hash, recipe_hash])),
-                   utf8_bytes=len(content_bytes), observed_at=observed,
-                   fetched_at=fetched, artifact_cached_at=cached, cache_status=cache_status,
-                   markdown_variant=cfg.markdown_variant)
+    receipt = dict(
+        schema_version=1,
+        source_url=source,
+        final_url=final,
+        content_sha256=content_hash,
+        processing_sha256=recipe_hash,
+        artifact_id=digest(canonical([content_hash, recipe_hash])),
+        utf8_bytes=len(content_bytes),
+        observed_at=observed,
+        fetched_at=fetched,
+        artifact_cached_at=cached,
+        cache_status=cache_status,
+        markdown_variant=cfg.markdown_variant,
+    )
     return receipt
 
 
 def from_crawl_result(result, *, config=None, observed_at=None, fetched_at=None):
     """Duck-typed Crawl4AI adapter. Cached-at is NOT asserted to be network fetch time."""
+
     def get(key, default=None):
-        return result.get(key, default) if isinstance(result, dict) else getattr(result, key, default)
+        return (
+            result.get(key, default)
+            if isinstance(result, dict)
+            else getattr(result, key, default)
+        )
+
     if not get("success", False):
         raise ValueError("Cannot receipt an unsuccessful crawl")
     cfg = config or ProcessingConfig(extractor="crawl4ai")
@@ -106,10 +170,19 @@ def from_crawl_result(result, *, config=None, observed_at=None, fetched_at=None)
     else:
         text = getattr(markdown, cfg.markdown_variant, None)
     if not isinstance(text, str):
-        raise ValueError(f"Requested markdown variant is unavailable: {cfg.markdown_variant}")
-    return create_receipt(text, get("url"), final_url=get("redirected_url"), config=cfg,
-        observed_at=observed_at, fetched_at=fetched_at,
-        cache_status=get("cache_status") or "unknown", artifact_cached_at=get("cached_at"))
+        raise ValueError(
+            f"Requested markdown variant is unavailable: {cfg.markdown_variant}"
+        )
+    return create_receipt(
+        text,
+        get("url"),
+        final_url=get("redirected_url"),
+        config=cfg,
+        observed_at=observed_at,
+        fetched_at=fetched_at,
+        cache_status=get("cache_status") or "unknown",
+        artifact_cached_at=get("cached_at"),
+    )
 
 
 def _validate_receipt(receipt):
@@ -119,9 +192,15 @@ def _validate_receipt(receipt):
         public_url(receipt.get(name))
     for name in ("content_sha256", "processing_sha256", "artifact_id"):
         value = receipt.get(name)
-        if not isinstance(value, str) or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
+        if (
+            not isinstance(value, str)
+            or len(value) != 64
+            or any(c not in "0123456789abcdef" for c in value)
+        ):
             raise ValueError(f"Invalid receipt field: {name}")
-    if receipt["artifact_id"] != digest(canonical([receipt["content_sha256"], receipt["processing_sha256"]])):
+    if receipt["artifact_id"] != digest(
+        canonical([receipt["content_sha256"], receipt["processing_sha256"]])
+    ):
         raise ValueError("Inconsistent artifact identifier")
     if type(receipt.get("utf8_bytes")) is not int or receipt["utf8_bytes"] < 0:
         raise ValueError("Invalid content byte count")
@@ -137,10 +216,12 @@ def verify_receipt(receipt, content, config):
         return False
     content_hash = digest(content.encode("utf-8"))
     recipe_hash = config.fingerprint()
-    return (receipt.get("content_sha256") == content_hash and
-            receipt.get("processing_sha256") == recipe_hash and
-            receipt.get("artifact_id") == digest(canonical([content_hash, recipe_hash])) and
-            receipt.get("utf8_bytes") == len(content.encode("utf-8")))
+    return (
+        receipt.get("content_sha256") == content_hash
+        and receipt.get("processing_sha256") == recipe_hash
+        and receipt.get("artifact_id") == digest(canonical([content_hash, recipe_hash]))
+        and receipt.get("utf8_bytes") == len(content.encode("utf-8"))
+    )
 
 
 def compare(previous, current):
@@ -153,9 +234,16 @@ def compare(previous, current):
     if previous["source_url"] != current["source_url"]:
         raise ValueError("Receipts refer to different sources")
     reasons = []
-    for key, reason in (("content_sha256", "content_changed"), ("processing_sha256", "processing_changed")):
+    for key, reason in (
+        ("content_sha256", "content_changed"),
+        ("processing_sha256", "processing_changed"),
+    ):
         if previous[key] != current[key]:
             reasons.append(reason)
     metadata_changed = previous["final_url"] != current["final_url"]
-    return dict(reembed=bool(reasons), metadata_changed=metadata_changed,
-                reasons=reasons or (["redirect_changed"] if metadata_changed else ["unchanged"]))
+    return dict(
+        reembed=bool(reasons),
+        metadata_changed=metadata_changed,
+        reasons=reasons
+        or (["redirect_changed"] if metadata_changed else ["unchanged"]),
+    )

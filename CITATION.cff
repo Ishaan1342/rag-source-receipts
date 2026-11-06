@@ -3,7 +3,7 @@ message: "If you use this software, please cite it using this metadata."
 type: software
 title: "rag-source-receipts"
 abstract: "Content and processing fingerprints for traceable RAG ingestion. Early MVP; see README for limitations."
-version: 0.1.0
+version: 0.1.1
 license: MIT
 authors:
   - family-names: Gill

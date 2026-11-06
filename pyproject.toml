@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rag-source-receipts"
-version = "0.1.0"
+version = "0.1.1"
 description = "Portable content receipts and re-embedding decisions for RAG ingestion"
 requires-python = ">=3.11"
 license = "MIT"

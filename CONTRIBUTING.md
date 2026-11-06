@@ -16,8 +16,8 @@ optional integrations. Do not call paid services from tests.
 - Add a regression test for behavior changes. Run relevant tests and packaging checks.
 - Keep fixtures synthetic or explicitly licensed; never include credentials,
   private logs, customer data, local environments or personal build records.
-- Preserve the documented MVP limitations. Do not present an oracle harness
-  result as model accuracy or a content hash as signed provenance.
+- Keep observation, fetch and cache times distinct. Do not describe content
+  hashes as signatures or proof of source authenticity.
 - Review your changes and be prepared to explain them. You are responsible
   for their correctness.
 - Be respectful and discuss technical disagreements constructively.
