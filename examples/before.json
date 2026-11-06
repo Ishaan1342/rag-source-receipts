@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "source_url": "https://example.org/events",
+  "final_url": "https://example.org/events",
+  "content_sha256": "e9078a72580b90282f54ef9a4f745ac343162b54ac728e1fb3582b70248c415d",
+  "processing_sha256": "1206d0d3f15aac7ce144b97abe8b2f5d266ee185a6be5cdeb67d870de80cc773",
+  "artifact_id": "ce4e413ac2a1797d8057906388b2216289cfc738d6aca6d7849ac3a62c97c47e",
+  "utf8_bytes": 20,
+  "observed_at": "2026-11-05T18:00:00Z",
+  "fetched_at": null,
+  "artifact_cached_at": null,
+  "cache_status": "unknown",
+  "markdown_variant": "raw_markdown"
+}

@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "url": "https://example.org/events",
+  "redirected_url": "https://example.org/events/current",
+  "markdown": {
+    "raw_markdown": "# Community ride\nSaturday 10:00",
+    "fit_markdown": null
+  },
+  "cache_status": "hit",
+  "cached_at": 1700000000
+}
